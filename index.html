@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <style>
   /* =====================================================================
      グッズ計算機 EC版 — MUZE TOOL BOX「作業机」ブランド版
@@ -47,7 +47,8 @@
     --dash:1.5px dashed rgba(59,58,46,.32);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;touch-action:manipulation}
+  button,a,input,label{touch-action:manipulation}
   body{
     background:
       radial-gradient(rgba(59,58,46,.05) 1px, transparent 1px) 0 0/22px 22px,
@@ -838,17 +839,34 @@ function renderRow(item) {
   var atLimit=!item.variants && count>=item.limit;
   var candidates=imageCandidates(item);
   var badgeParts=[]; if(item.limited) badgeParts.push('<span class="badge fc">数量限定</span>'); if(item.preorder) badgeParts.push('<span class="badge pre">予約販売</span>'); if(item.random) badgeParts.push('<span class="badge random">RANDOM</span>'); if(item.fcOnly) badgeParts.push('<span class="badge fc">FC限定</span>'); if(item.architectOnly) badgeParts.push('<span class="badge fc">Architect会員限定</span>'); var badges=badgeParts.length?'<div class="badges">'+badgeParts.join('')+'</div>':'';
-  return '<div class="item"><div class="item-image-wrap"><div class="item-image-placeholder">IMAGE<br>COMING SOON</div><img class="item-image" src="'+candidates[0]+'" data-candidates="'+escapeHtml(JSON.stringify(candidates))+'" data-index="0" alt="'+escapeHtml(item.name)+'" loading="lazy"></div><div class="item-name-wrap"><div class="item-head"><div class="name">'+escapeHtml(item.name)+'</div><div class="price">'+formatYen(item.price)+'</div></div>'+badges+'<div class="note">'+escapeHtml(item.note)+(atLimit?'<span class="limit-note">← 入力上限の'+item.limit+'点です</span>':'')+'</div>'+(item.variants?'':'<div class="controls"><button type="button" class="step" data-act="dec" data-id="'+item.id+'">−</button><input type="number" inputmode="numeric" min="0" max="'+item.limit+'" value="'+count+'" data-act="input" data-id="'+item.id+'"><button type="button" class="step" data-act="inc" data-id="'+item.id+'">＋</button></div>')+'</div>'+(item.variants?renderVariantSelector(item):'')+'</div>';
+  return '<div class="item" data-item="'+item.id+'"><div class="item-image-wrap"><div class="item-image-placeholder">IMAGE<br>COMING SOON</div><img class="item-image" src="'+candidates[0]+'" data-candidates="'+escapeHtml(JSON.stringify(candidates))+'" data-index="0" alt="'+escapeHtml(item.name)+'" loading="lazy"></div><div class="item-name-wrap"><div class="item-head"><div class="name">'+escapeHtml(item.name)+'</div><div class="price">'+formatYen(item.price)+'</div></div>'+badges+'<div class="note">'+escapeHtml(item.note)+(atLimit?'<span class="limit-note">← 入力上限の'+item.limit+'点です</span>':'')+'</div>'+(item.variants?'':'<div class="controls"><button type="button" class="step" data-act="dec" data-id="'+item.id+'">−</button><input type="number" inputmode="numeric" min="0" max="'+item.limit+'" value="'+count+'" data-act="input" data-id="'+item.id+'"><button type="button" class="step" data-act="inc" data-id="'+item.id+'">＋</button></div>')+'</div>'+(item.variants?renderVariantSelector(item):'')+'</div>';
 }
 
 var lastTotal = null;
-function update() {
+function renderList() {
   renderCategoryTabs();
-
   var visibleGoods = currentCategory === 'すべて'
     ? goods
     : goods.filter(function (item) { return item.categories && item.categories.includes(currentCategory); });
   goodsList.innerHTML = visibleGoods.map(renderRow).join('');
+}
+/* 押した商品の行だけ差し替える(一覧全体を作り直すと画像の再描画やスクロールのずれが起きる) */
+function refreshItem(id) {
+  var el = goodsList.querySelector('.item[data-item="' + id + '"]');
+  var item = goods.find(function (g) { return g.id === id; });
+  if (!el || !item) { renderList(); return; }
+  var a = document.activeElement, focusSel = null;
+  if (a && el.contains(a) && a.dataset && a.dataset.act) {
+    focusSel = '[data-act="' + a.dataset.act + '"]' + (a.dataset.variant ? '[data-variant="' + a.dataset.variant + '"]' : '');
+  }
+  var tmp = document.createElement('div');
+  tmp.innerHTML = renderRow(item);
+  var fresh = tmp.firstChild;
+  el.replaceWith(fresh);
+  if (focusSel) { var f = fresh.querySelector(focusSel); if (f && !f.disabled) f.focus({ preventScroll: true }); }
+}
+function update(changedId) {
+  if (changedId) refreshItem(changedId); else renderList();
 
   var rows = getRows();
   var total = rows.reduce(function (sum, row) { return sum + row.subtotal; }, 0);
@@ -908,17 +926,17 @@ function handleAction(act, ds) {
   var item = goods.find(function (g) { return g.id === ds.id; });
   if (act === 'inc' || act === 'dec') {
     quantities[ds.id] = clamp(quantities[ds.id] + (act === 'inc' ? 1 : -1), item.limit);
-    update();
+    update(ds.id);
   } else if (act === 'vinc' || act === 'vdec') {
     if (act === 'vinc') {
       variantQuantities[ds.id][ds.variant] = clamp(variantQuantities[ds.id][ds.variant] + 1, item.limit);
     } else {
       variantQuantities[ds.id][ds.variant] = Math.max(0, variantQuantities[ds.id][ds.variant] - 1);
     }
-    update();
+    update(ds.id);
   } else if (act === 'clear') {
     item.variants.forEach(function (v) { variantQuantities[ds.id][v] = 0; });
-    update();
+    update(ds.id);
   }
 }
 
@@ -932,7 +950,7 @@ goodsList.addEventListener('change', function (e) {
   if (!el) return;
   var item = goods.find(function (g) { return g.id === el.dataset.id; });
   quantities[el.dataset.id] = clamp(el.value, item.limit);
-  update();
+  update(el.dataset.id);
 });
 // 画像フォールバック：webp → jpg → jpeg → png
 goodsList.addEventListener('error', function(e){
@@ -1025,7 +1043,11 @@ downloadBtn.addEventListener('click', async function () {
       backgroundColor: '#f1ebe1',           /* 机の上のレシートとして写る */
       scale: safeScale(rect.width, rect.height, 2),
       useCORS: true,
-      logging: false
+      logging: false,
+      /* レシート以外(商品写真・方眼ノートなど)は複製しない＝速くなる */
+      ignoreElements: function (el) {
+        return document.body.contains(el) && el !== target && !target.contains(el) && !el.contains(target);
+      }
     });
     var blob = await canvasToBlob(canvas);
     var file = new File([blob], 'mazzel-autumn2026-goods-result.png', { type: 'image/png' });
