@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="app-version" content="2026.10.28-6">
+  <meta name="app-version" content="2026.10.28-7">
   <title>MAZZEL AUTUMN2026 MERCH グッズ計算機</title>
   <meta name="description" content="MAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の購入予定を入れると、合計金額・合計点数・内訳を自動で計算できます。" />
   <meta property="og:type" content="website">
@@ -11,13 +11,13 @@
   <meta property="og:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <meta property="og:description" content="BMSG SHOPで買うMAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の合計金額・点数・送料をその場で計算。購入上限と発送時期もひと目で。">
   <meta property="og:url" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/">
-  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-6">
+  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-7">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="MAZZEL AUTUMN2026 MERCH グッズ計算機">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-6">
+  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-7">
   <meta name="twitter:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,6 +109,15 @@
      タブレット：商品一覧の下に、レシートと発送シミュレーターを左右に並べる
      PC：商品一覧｜レシート｜発送シミュレーター の3列 */
   .layout{display:grid;gap:26px;margin-top:18px;grid-template-columns:minmax(0,1fr)}
+  /* スマホはレシート列を分解して「レシート → 発送シミュレーター → ボタン」の順に */
+  @media(max-width:639px){
+    .layout{row-gap:0}
+    .goods-col{order:1;margin-bottom:26px}
+    .receipt-col{display:contents}
+    .receipt-col>.receipt-wrap{order:2}
+    .ship-col{order:3;padding-bottom:6px}
+    .receipt-col>:not(.receipt-wrap){order:4}
+  }
   @media(min-width:640px){
     .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
     .layout>.goods-col{grid-column:1 / -1}
@@ -507,7 +516,7 @@
   .ship-col .benefit-title{font-family:var(--hand);font-weight:600;font-size:16px}
   .checkout-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
   .checkout-head{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-weight:900;font-size:11px}
-  .checkout-gift{font-size:9px;padding:2px 6px;border-radius:999px;background:#f3e6c4;white-space:nowrap}
+  .checkout-gift{display:inline-block;font-size:9px;line-height:1.6;padding:1px 7px;border-radius:999px;background:#f3e6c4;white-space:nowrap}
   .checkout-items{font-size:9px;line-height:1.55;color:var(--muted);margin-top:6px}
   .checkout-money{display:grid;grid-template-columns:1fr auto;gap:3px 12px;margin-top:7px;font-size:10px}
   .benefit-foot{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:10px;line-height:1.7}
@@ -552,8 +561,8 @@
   .shot-preview img{width:100%;box-shadow:var(--obj-shadow)}
   .shot-preview p{font-family:var(--hand);font-size:12px;font-weight:600;text-align:center;margin-top:6px;color:var(--faded)}
 </style>
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-6"><link rel="manifest" href="manifest.json?v=2026.10.28-6"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
-<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-6" defer></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-7"><link rel="manifest" href="manifest.json?v=2026.10.28-7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
+<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-7" defer></script>
 </head>
 <body>
 
@@ -1095,21 +1104,47 @@ function buildImage() {
   var key = stateKey();
   if (imgCache && imgCache.key === key) return Promise.resolve(imgCache);
   if (imgPending && imgPending.key === key) return imgPending.promise;
-  var target = document.getElementById('receiptWrap');
+  var receiptEl = document.getElementById('receiptWrap');
+  var shipEl = document.querySelector('.ship-col');
   var promise = (async function () {
     try { await document.fonts.ready; } catch (e) {}
     if (!window.html2canvas) throw new Error('html2canvas not loaded');
-    var rect = target.getBoundingClientRect();
-    var canvas = await html2canvas(target, {
-      backgroundColor: '#eeeadc',           /* 机の上のレシートとして写る */
-      scale: safeScale(rect.width, rect.height, 2),
-      useCORS: true,
-      logging: false,
-      /* レシート以外(商品写真・方眼ノートなど)は複製しない＝速くなる */
-      ignoreElements: function (el) {
-        return document.body.contains(el) && el !== target && !target.contains(el) && !el.contains(target);
-      }
-    });
+    var r1 = receiptEl.getBoundingClientRect(), r2 = shipEl.getBoundingClientRect();
+    var scale = safeScale(Math.max(r1.width, r2.width), r1.height + r2.height, 2);
+    function snap(target) {
+      return html2canvas(target, {
+        backgroundColor: '#eeeadc',           /* 机の上のレシートとして写る */
+        scale: scale,
+        useCORS: true,
+        logging: false,
+        /* 画像ではスイッチがずれて写るので「オン/オフ」の文字に置き換える */
+        onclone: function (doc) {
+          var sw = doc.querySelector('.ship-col .benefit-switch');
+          if (sw) {
+            var on = !!(benefitToggle && benefitToggle.checked);
+            sw.outerHTML = '<span style="flex:0 0 auto;font-size:13px;font-weight:700;color:' + (on ? '#2f6448' : '#878470') + '">' + (on ? '✓ オン' : 'オフ') + '</span>';
+          }
+          /* 画像化ライブラリは丸い札の中の文字が下にずれるので、札をやめて色文字にする */
+          doc.querySelectorAll('.checkout-gift').forEach(function (g) { g.style.background = 'none'; g.style.padding = '0'; g.style.color = '#8a5a08'; });
+        },
+        /* 写す部分以外(商品写真・方眼ノートなど)は複製しない＝速くなる */
+        ignoreElements: function (el) {
+          return document.body.contains(el) && el !== target && !target.contains(el) && !el.contains(target);
+        }
+      });
+    }
+    /* レシートと発送・送料シミュレーターを縦につないで1枚に */
+    var c1 = await snap(receiptEl);
+    var c2 = await snap(shipEl);
+    var pad = Math.round(14 * scale);
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.max(c1.width, c2.width);
+    canvas.height = c1.height + c2.height + pad;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#eeeadc';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(c1, Math.round((canvas.width - c1.width) / 2), 0);
+    ctx.drawImage(c2, Math.round((canvas.width - c2.width) / 2), c1.height);  /* 下に少し余白(pad)を残す */
     var blob = await canvasToBlob(canvas);
     var result = { key: key, file: new File([blob], FILE_NAME, { type: 'image/png' }), canvas: canvas };
     if (stateKey() === key) imgCache = result;
