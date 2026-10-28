@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="app-version" content="2026.10.28-5">
+  <meta name="app-version" content="2026.10.28-6">
   <title>MAZZEL AUTUMN2026 MERCH グッズ計算機</title>
   <meta name="description" content="MAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の購入予定を入れると、合計金額・合計点数・内訳を自動で計算できます。" />
   <meta property="og:type" content="website">
@@ -11,13 +11,13 @@
   <meta property="og:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <meta property="og:description" content="BMSG SHOPで買うMAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の合計金額・点数・送料をその場で計算。購入上限と発送時期もひと目で。">
   <meta property="og:url" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/">
-  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-5">
+  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-6">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="MAZZEL AUTUMN2026 MERCH グッズ計算機">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-5">
+  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-6">
   <meta name="twitter:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,11 +104,20 @@
     transform:rotate(4deg);
   }
 
-  /* ---------- 2カラム(PC) ---------- */
-  .layout{display:grid;gap:26px;margin-top:18px}
-  @media(min-width:900px){
-    .layout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}
-    .receipt-col{position:sticky;top:16px}
+  /* ---------- レイアウト ----------
+     スマホ：商品一覧 → レシート → 発送シミュレーター（縦1列）
+     タブレット：商品一覧の下に、レシートと発送シミュレーターを左右に並べる
+     PC：商品一覧｜レシート｜発送シミュレーター の3列 */
+  .layout{display:grid;gap:26px;margin-top:18px;grid-template-columns:minmax(0,1fr)}
+  @media(min-width:640px){
+    .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+    .layout>.goods-col{grid-column:1 / -1}
+  }
+  @media(min-width:1100px){
+    .shell{max-width:1320px}
+    .layout{grid-template-columns:minmax(0,1fr) 340px 300px}
+    .layout>.goods-col{grid-column:auto}
+    .receipt-col,.ship-col{position:sticky;top:16px}
   }
 
   /* ---------- インデックスタブ(カテゴリ) ---------- */
@@ -397,7 +406,7 @@
     border-top:var(--dash);
     padding:10px 16px calc(10px + env(safe-area-inset-bottom));
   }
-  @media(min-width:900px){.dock{display:none}}
+  @media(min-width:1100px){.dock{display:none}}
   .dock-inner{
     max-width:1080px;margin:0 auto;
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -483,9 +492,21 @@
   }
   .benefit-stat span{display:block;font-size:9px;color:var(--muted);font-weight:700}
   .benefit-stat strong{display:block;font-size:17px;margin-top:3px}
-  .checkout-list{display:grid;gap:8px}
+  .checkout-list{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(138px,1fr))}
+  .ship-col{padding:14px 6px 0}
+  .ship-col .benefit-box{
+    margin-top:0;position:relative;
+    background:var(--paper);border:0;border-radius:0;
+    box-shadow:var(--obj-shadow);padding:20px 16px 16px;
+  }
+  .ship-col .benefit-box::before{
+    content:"";position:absolute;width:60px;height:16px;
+    background:var(--tape-mint);top:-8px;left:50%;
+    transform:translateX(-50%) rotate(-2deg);
+  }
+  .ship-col .benefit-title{font-family:var(--hand);font-weight:600;font-size:16px}
   .checkout-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
-  .checkout-head{display:flex;justify-content:space-between;gap:10px;font-weight:900;font-size:11px}
+  .checkout-head{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-weight:900;font-size:11px}
   .checkout-gift{font-size:9px;padding:2px 6px;border-radius:999px;background:#f3e6c4;white-space:nowrap}
   .checkout-items{font-size:9px;line-height:1.55;color:var(--muted);margin-top:6px}
   .checkout-money{display:grid;grid-template-columns:1fr auto;gap:3px 12px;margin-top:7px;font-size:10px}
@@ -525,14 +546,14 @@
     font-size:13px;font-weight:700;
   }
   .update-bar button{min-height:44px;padding:8px 14px;background:var(--pencil);color:var(--desk);border:0;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
-  @media(min-width:900px){.update-bar{bottom:20px}}
+  @media(min-width:1100px){.update-bar{bottom:20px}}
   .update-bar[hidden]{display:none}
   .shot-preview{margin-top:12px;padding:0 6px}
   .shot-preview img{width:100%;box-shadow:var(--obj-shadow)}
   .shot-preview p{font-family:var(--hand);font-size:12px;font-weight:600;text-align:center;margin-top:6px;color:var(--faded)}
 </style>
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-5"><link rel="manifest" href="manifest.json?v=2026.10.28-5"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
-<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-5" defer></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-6"><link rel="manifest" href="manifest.json?v=2026.10.28-6"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
+<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-6" defer></script>
 </head>
 <body>
 
@@ -550,7 +571,7 @@
   </section>
 
   <div class="layout">
-    <section aria-label="商品一覧">
+    <section class="goods-col" aria-label="商品一覧">
       <div id="categoryTabs" class="tabs" role="tablist" aria-label="カテゴリ"></div>
       <div class="notebook">
         <h2>商品一覧</h2>
@@ -580,23 +601,6 @@
             </div>
             <div class="warn" id="warningBox"></div>
 
-            <div class="benefit-box" id="benefitBox">
-              <div class="benefit-title">発送・送料シミュレーター</div>
-              <div class="benefit-desc">予約商品は2027年1月下旬以降の発送です。Touchと予約商品を同じ会計にすると、全商品がそろってからまとめて発送されます。</div>
-              <label class="benefit-toggle">
-                <span class="benefit-toggle-copy">
-                  <strong>Touchを先に受け取る</strong>
-                  <span>Touchと予約商品で会計を分けて、送料770円込みで計算</span>
-                </span>
-                <span class="benefit-switch">
-                  <input type="checkbox" id="benefitToggle">
-                  <span class="benefit-slider" aria-hidden="true"></span>
-                </span>
-              </label>
-              <div class="benefit-detail" id="benefitDetail">
-                <div id="benefitResult" class="benefit-empty">商品を選ぶと、会計ごとの送料込み金額を計算します。</div>
-              </div>
-            </div>
           </div>
           <div class="zigzag bottom" aria-hidden="true"></div>
         </div>
@@ -611,6 +615,26 @@
       <div id="status" class="status" aria-live="polite"></div>
       <div id="shotPreview" class="shot-preview" hidden></div>
       <p class="memo-text">サイズ・グループ・メンバー別の商品は種類ごとに選択できます。購入上限は、各サイズ・各メンバー・各種類ごとに3点まで（ランダムテロップチャームのみ20点まで）です。送料は前回と同じ770円で計算しています。</p>
+    </aside>
+
+    <aside class="ship-col" aria-label="発送・送料">
+      <div class="benefit-box" id="benefitBox">
+        <div class="benefit-title">発送・送料シミュレーター</div>
+        <div class="benefit-desc">予約商品は2027年1月下旬以降の発送です。Touchと予約商品を同じ会計にすると、全商品がそろってからまとめて発送されます。</div>
+        <label class="benefit-toggle">
+          <span class="benefit-toggle-copy">
+            <strong>Touchを先に受け取る</strong>
+            <span>Touchと予約商品で会計を分けて、送料770円込みで計算</span>
+          </span>
+          <span class="benefit-switch">
+            <input type="checkbox" id="benefitToggle">
+            <span class="benefit-slider" aria-hidden="true"></span>
+          </span>
+        </label>
+        <div class="benefit-detail" id="benefitDetail">
+          <div id="benefitResult" class="benefit-empty">商品を選ぶと、会計ごとの送料込み金額を計算します。</div>
+        </div>
+      </div>
     </aside>
   </div>
 
