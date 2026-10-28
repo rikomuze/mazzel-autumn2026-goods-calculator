@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="app-version" content="2026.10.28-7">
+  <meta name="app-version" content="2026.10.28-8">
   <title>MAZZEL AUTUMN2026 MERCH グッズ計算機</title>
   <meta name="description" content="MAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の購入予定を入れると、合計金額・合計点数・内訳を自動で計算できます。" />
   <meta property="og:type" content="website">
@@ -11,13 +11,13 @@
   <meta property="og:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <meta property="og:description" content="BMSG SHOPで買うMAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の合計金額・点数・送料をその場で計算。購入上限と発送時期もひと目で。">
   <meta property="og:url" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/">
-  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-7">
+  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-8">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="MAZZEL AUTUMN2026 MERCH グッズ計算機">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-7">
+  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-8">
   <meta name="twitter:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -561,8 +561,8 @@
   .shot-preview img{width:100%;box-shadow:var(--obj-shadow)}
   .shot-preview p{font-family:var(--hand);font-size:12px;font-weight:600;text-align:center;margin-top:6px;color:var(--faded)}
 </style>
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-7"><link rel="manifest" href="manifest.json?v=2026.10.28-7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
-<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-7" defer></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-8"><link rel="manifest" href="manifest.json?v=2026.10.28-8"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
+<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-8" defer></script>
 </head>
 <body>
 
@@ -1110,7 +1110,7 @@ function buildImage() {
     try { await document.fonts.ready; } catch (e) {}
     if (!window.html2canvas) throw new Error('html2canvas not loaded');
     var r1 = receiptEl.getBoundingClientRect(), r2 = shipEl.getBoundingClientRect();
-    var scale = safeScale(Math.max(r1.width, r2.width), r1.height + r2.height, 2);
+    var scale = safeScale(r1.width + r2.width + 28, Math.max(r1.height, r2.height) + 14, 2);
     function snap(target) {
       return html2canvas(target, {
         backgroundColor: '#eeeadc',           /* 机の上のレシートとして写る */
@@ -1133,18 +1133,18 @@ function buildImage() {
         }
       });
     }
-    /* レシートと発送・送料シミュレーターを縦につないで1枚に */
+    /* レシートと発送・送料シミュレーターを横に並べて1枚に（左：レシート／右：シミュレーター） */
     var c1 = await snap(receiptEl);
     var c2 = await snap(shipEl);
     var pad = Math.round(14 * scale);
     var canvas = document.createElement('canvas');
-    canvas.width = Math.max(c1.width, c2.width);
-    canvas.height = c1.height + c2.height + pad;
+    canvas.width = pad + c1.width + c2.width + pad;
+    canvas.height = Math.max(c1.height, c2.height) + pad;
     var ctx = canvas.getContext('2d');
     ctx.fillStyle = '#eeeadc';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(c1, Math.round((canvas.width - c1.width) / 2), 0);
-    ctx.drawImage(c2, Math.round((canvas.width - c2.width) / 2), c1.height);  /* 下に少し余白(pad)を残す */
+    ctx.drawImage(c1, pad, 0);
+    ctx.drawImage(c2, pad + c1.width, 0);
     var blob = await canvasToBlob(canvas);
     var result = { key: key, file: new File([blob], FILE_NAME, { type: 'image/png' }), canvas: canvas };
     if (stateKey() === key) imgCache = result;
