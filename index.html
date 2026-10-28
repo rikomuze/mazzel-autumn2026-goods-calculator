@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="app-version" content="2026.10.28-1">
   <title>MAZZEL AUTUMN2026 MERCH グッズ計算機</title>
   <meta name="description" content="MAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の購入予定を入れると、合計金額・合計点数・内訳を自動で計算できます。" />
   <meta property="og:type" content="website">
@@ -10,13 +11,13 @@
   <meta property="og:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <meta property="og:description" content="BMSG SHOPで買うMAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の合計金額・点数・送料をその場で計算。購入上限と発送時期もひと目で。">
   <meta property="og:url" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/">
-  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg">
+  <meta property="og:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-1">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="MAZZEL AUTUMN2026 MERCH グッズ計算機">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg">
+  <meta name="twitter:image" content="https://rikomuze.github.io/mazzel-autumn2026-goods-calculator/og.jpg?v=2026.10.28-1">
   <meta name="twitter:title" content="MAZZEL AUTUMN2026 MERCH グッズ計算機｜MUZE TOOL BOX">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -510,12 +511,24 @@
   .benefit-switch input:checked + .benefit-slider:before{transform:translateX(18px)}
   .benefit-detail[hidden]{display:none!important}
 
+  .update-bar{
+    position:fixed;left:12px;right:12px;z-index:70;
+    bottom:calc(84px + env(safe-area-inset-bottom));
+    max-width:520px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 12px 10px 16px;
+    background:var(--paper);box-shadow:var(--obj-shadow);
+    border:1.5px solid var(--pencil);
+    font-size:13px;font-weight:700;
+  }
+  .update-bar button{min-height:44px;padding:8px 14px;background:var(--pencil);color:var(--desk);border:0;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  @media(min-width:900px){.update-bar{bottom:20px}}
   .shot-preview{margin-top:12px;padding:0 6px}
   .shot-preview img{width:100%;box-shadow:var(--obj-shadow)}
   .shot-preview p{font-family:var(--hand);font-size:12px;font-weight:600;text-align:center;margin-top:6px;color:var(--faded)}
 </style>
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
-<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js" defer></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2026.10.28-1"><link rel="manifest" href="manifest.json?v=2026.10.28-1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="秋グッズ計算機">
+<script src="https://rikomuze.github.io/muze-tool-box/assets/app-back.js?v=2026.10.28-1" defer></script>
 </head>
 <body>
 
@@ -607,6 +620,8 @@
   </footer>
 </div>
 
+<div class="update-bar" id="updateBar" role="status" hidden><span>新しい版の計算機があります</span><button type="button" id="updateBtn">更新する</button></div>
+
 <div class="dock" role="region" aria-label="合計">
   <div class="dock-inner">
     <div class="dock-total">
@@ -629,6 +644,9 @@
 "use strict";
 
 /* ---------- 商品データ（BMSG SHOP MAZZEL / AUTUMN2026 MERCH） ---------- */
+/* キャッシュバスター：更新したら <meta name="app-version"> と ?v= をまとめて上げる(README参照) */
+var APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '0';
+
 var members = ['KAIRYU','NAOYA','RAN','SEITO','RYUKI','TAKUTO','HAYATO','EIKI'];
 var INLINE_IMAGES = /*INLINE_IMAGES*/{};
 
@@ -816,7 +834,7 @@ function renderBenefit(rowsTotal) {
 
 /* ---------- 描画 ---------- */
 function imageBase(item){return 'images/' + (item.image || item.id);}
-function imageCandidates(item){if(INLINE_IMAGES[item.id])return [INLINE_IMAGES[item.id]];var b=imageBase(item);return [b+'.webp',b+'.jpg',b+'.jpeg',b+'.png'];}
+function imageCandidates(item){if(INLINE_IMAGES[item.id])return [INLINE_IMAGES[item.id]];var b=imageBase(item),q='?v='+APP_VERSION;return [b+'.webp'+q,b+'.jpg'+q,b+'.jpeg'+q,b+'.png'+q];}
 function imageSrc(item){return imageCandidates(item)[0];}
 
 function renderCategoryTabs() {
@@ -1103,6 +1121,44 @@ if (benefitToggle) {
     update();
   });
 }
+
+/* ---------- キャッシュバスター：新しい版が公開されていたら読み直す ---------- */
+(function () {
+  var updateBar = document.getElementById('updateBar');
+  var updateBtn = document.getElementById('updateBtn');
+  var KEY = 'mazzel-autumn2026-reloaded-for';
+  var pendingVersion = null;
+
+  function hasInput() {
+    return goods.some(function (item) {
+      if (item.variants) return item.variants.some(function (v) { return variantQuantities[item.id][v] > 0; });
+      return quantities[item.id] > 0;
+    });
+  }
+  function reloadTo(v) {
+    try { sessionStorage.setItem(KEY, v); } catch (e) {}
+    var url = new URL(location.href);
+    url.searchParams.set('v', v);
+    location.replace(url.toString());
+  }
+  function check() {
+    var url = location.pathname + '?nocache=' + Date.now();
+    fetch(url, { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (html) {
+      var m = html.match(/<meta name="app-version" content="([^"]+)"/);
+      if (!m || m[1] === APP_VERSION) return;
+      var already = null; try { already = sessionStorage.getItem(KEY); } catch (e) {}
+      if (already === m[1]) return; // 読み直してもまだ古い(CDN反映待ち)ときは繰り返さない
+      if (!hasInput()) { reloadTo(m[1]); return; }
+      pendingVersion = m[1];
+      updateBar.hidden = false; // 入力中は勝手に消さず、ボタンで更新してもらう
+    }).catch(function () {});
+  }
+  updateBtn.addEventListener('click', function () { if (pendingVersion) reloadTo(pendingVersion); });
+  if (location.protocol.indexOf('http') === 0) {
+    check();
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') check(); });
+  }
+})();
 
 /* ---------- 初期化 ---------- */
 document.getElementById('receiptDate').textContent = formatDate(new Date());
