@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MAZZEL AUTUMN2026 MERCH グッズ計算機</title>
+  <meta name="description" content="MAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の購入予定を入れると、合計金額・合計点数・内訳を自動で計算できます。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+  /* =====================================================================
+     グッズ計算機 EC版 — MUZE TOOL BOX「作業机」ブランド版
+     商品一覧=方眼ノート、計算結果=レシート。
+     機能ツールなので装飾は「紙の実務の語彙」(方眼・等幅数字・点線・
+     インデックスタブ)だけ。影は物(ノート・レシート)の影のみ。
+     ===================================================================== */
+  :root{
+    --desk:#eeeadc;
+    --paper:#ffffff;
+    --paper-dim:#e4e1cf;        /* 非選択タブの紙 */
+    --pencil:#3b3a2e;
+    --faded:#878470;
+    --red-pencil:#c4412f;
+    --tape-berry:rgba(226,170,58,.88);   /* AUTUMN: マスタード */
+    --tape-mint:rgba(112,160,126,.85);   /* AUTUMN: まぜべやグリーン */
+    --grid-line:rgba(59,58,46,.07);
+    --muted:#878470;
+    --line:rgba(59,58,46,.16);
+    --hand:"Klee One","Hiragino Maru Gothic ProN","Yu Gothic",cursive;
+    --gothic:"Zen Kaku Gothic New","Hiragino Sans",sans-serif;
+    --obj-shadow:0 10px 24px rgba(59,58,46,.18);
+    --dash:1.5px dashed rgba(59,58,46,.32);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(rgba(59,58,46,.05) 1px, transparent 1px) 0 0/22px 22px,
+      var(--desk);
+    color:var(--pencil);
+    font-family:var(--gothic);
+    line-height:1.8;
+    -webkit-text-size-adjust:100%;
+    padding-bottom:96px;
+  }
+  img{display:block;max-width:100%}
+  a{color:inherit;text-decoration:none}
+  button,input{font-family:inherit;color:inherit}
+  .shell{max-width:1080px;margin:0 auto;padding:0 14px}
+  :focus-visible{outline:2.5px solid var(--tape-berry);outline-offset:3px}
+
+  /* ---------- 見出し ---------- */
+  .intro{padding:16px 2px 14px}
+  .intro h1{
+    font-family:var(--hand);
+    font-weight:600;
+    font-size:clamp(26px,7vw,36px);
+    letter-spacing:.05em;line-height:1.35;
+    transform:rotate(-.5deg);
+  }
+  .intro h1 em{font-style:normal;border-bottom:3px solid var(--tape-berry)}
+  .intro .lede{font-size:13px;color:var(--faded);margin-top:4px}
+  .shop-link{
+    display:inline-flex;align-items:center;
+    margin-top:12px;
+    min-height:48px;
+    padding:10px 18px;
+    background:var(--paper);
+    box-shadow:var(--obj-shadow);
+    font-size:13.5px;font-weight:700;
+    transform:rotate(-.6deg);
+    position:relative;
+  }
+  .shop-link::before{
+    content:"";position:absolute;
+    width:44px;height:14px;
+    background:var(--tape-mint);
+    top:-7px;right:14px;
+    transform:rotate(4deg);
+  }
+
+  /* ---------- 2カラム(PC) ---------- */
+  .layout{display:grid;gap:26px;margin-top:18px}
+  @media(min-width:900px){
+    .layout{grid-template-columns:minmax(0,1fr) 360px;align-items:start}
+    .receipt-col{position:sticky;top:16px}
+  }
+
+  /* ---------- インデックスタブ(カテゴリ) ---------- */
+  .tabs{
+    display:flex;gap:6px;
+    overflow-x:auto;
+    padding:8px 10px 0;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex:0 0 auto;
+    min-height:46px;
+    padding:10px 15px 12px;
+    background:var(--paper-dim);
+    border:1px solid rgba(59,58,46,.18);
+    border-bottom:0;
+    font-size:12.5px;font-weight:700;letter-spacing:.03em;
+    color:var(--faded);
+    cursor:pointer;
+    position:relative;
+    transform:translateY(2px);
+  }
+  .tab.active{
+    background:var(--paper);
+    color:var(--pencil);
+    transform:translateY(0);
+    z-index:2;
+  }
+  .tab.active::before{
+    content:"";position:absolute;
+    width:30px;height:9px;
+    background:var(--tape-berry);
+    top:-5px;left:50%;
+    transform:translateX(-50%) rotate(-3deg);
+  }
+
+  /* ---------- 方眼ノート(商品一覧) ---------- */
+  .notebook{
+    position:relative;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+      var(--paper);
+    background-size:18px 18px,18px 18px,auto;
+    box-shadow:var(--obj-shadow);
+    padding:16px 14px 18px;
+  }
+  .notebook>h2{
+    font-family:var(--hand);
+    font-weight:600;font-size:19px;letter-spacing:.05em;
+    margin-bottom:2px;
+  }
+  .goods-list{display:grid}
+
+  .item{
+    display:grid;
+    grid-template-columns:104px minmax(0,1fr);
+    gap:14px;
+    align-items:start;
+    padding:14px 0;
+    border-bottom:var(--dash);
+  }
+  .item:last-child{border-bottom:0}
+  .item-image{
+    width:104px;height:104px;
+    object-fit:cover;
+    background:var(--paper);
+    padding:3px;
+    box-shadow:0 3px 10px rgba(59,58,46,.14);
+  }
+  .item-head{
+    display:flex;flex-direction:column;align-items:flex-start;
+    gap:0;margin-bottom:2px;
+  }
+  .name{font-size:14px;font-weight:700;line-height:1.55;min-width:0}
+  .price{
+    font-size:16px;font-weight:700;white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+  .note{font-size:11px;color:var(--faded)}
+  .limit-note{
+    font-family:var(--hand);
+    font-size:11.5px;font-weight:600;
+    color:var(--red-pencil);
+    margin-left:6px;
+  }
+
+  /* 数量ステッパー(48pxで押しやすく) */
+  .controls{
+    display:flex;gap:8px;align-items:center;
+    margin-top:10px;
+  }
+  .step{
+    width:48px;height:48px;
+    border:1.5px solid var(--pencil);
+    background:var(--paper);
+    font-size:22px;font-weight:700;
+    cursor:pointer;
+    line-height:1;
+  }
+  .step:active{background:var(--pencil);color:var(--paper)}
+  .controls input{
+    width:72px;height:48px;
+    text-align:center;
+    border:0;
+    border-bottom:var(--dash);
+    background:transparent;
+    font-size:17px;font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* メンバー別 */
+  .member-box{
+    grid-column:1 / -1;
+    display:grid;gap:10px;
+    border:var(--dash);
+    background:rgba(255,255,255,.55);
+    padding:12px;
+    margin-top:8px;
+  }
+  .member-head{
+    display:flex;justify-content:space-between;align-items:center;
+    gap:8px;flex-wrap:wrap;
+  }
+  .member-title{
+    font-size:12px;font-weight:700;color:var(--faded);
+    font-variant-numeric:tabular-nums;
+  }
+  .set-actions{display:flex;gap:8px}
+  .set-actions button{
+    min-height:40px;
+    padding:8px 12px;
+    font-family:var(--hand);
+    font-size:12.5px;font-weight:600;
+    background:transparent;
+    border:1.5px solid var(--pencil);
+    border-radius:50%;
+    cursor:pointer;
+  }
+  .set-actions button:active{background:var(--pencil);color:var(--paper)}
+  .member-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+  }
+  @media(max-width:640px){.member-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .member-row{
+    display:grid;gap:6px;
+    padding:8px 9px 9px;
+    background:var(--paper);
+    box-shadow:0 2px 8px rgba(59,58,46,.10);
+  }
+  .member-name{font-size:12px;font-weight:700;letter-spacing:.06em}
+  .member-controls{display:flex;align-items:center;gap:6px}
+  .mstep{
+    width:44px;height:44px;
+    border:1.5px solid var(--pencil);
+    background:transparent;
+    font-size:19px;font-weight:700;
+    cursor:pointer;line-height:1;
+  }
+  .mstep:active{background:var(--pencil);color:var(--paper)}
+  .member-count{
+    min-width:30px;text-align:center;
+    font-size:15px;font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+  .member-count.at-limit{color:var(--red-pencil)}
+
+  /* ---------- レシート(計算結果) ---------- */
+  .receipt-wrap{padding:14px 6px}
+  .receipt{
+    background:var(--paper);
+    box-shadow:var(--obj-shadow);
+    padding:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .zigzag{
+    height:12px;
+    background:
+      linear-gradient(135deg, var(--paper) 6px, transparent 0) 0 0,
+      linear-gradient(45deg, transparent 6px, var(--paper) 0) 0 0;
+    background-size:12px 12px;
+    background-repeat:repeat-x;
+  }
+  .zigzag.bottom{
+    transform:scaleY(-1);
+  }
+  .receipt-body{padding:16px 18px 14px}
+  .receipt-head{
+    text-align:center;
+    padding-bottom:12px;
+    border-bottom:var(--dash);
+    margin-bottom:10px;
+  }
+  .receipt-head .shop{
+    font-family:var(--hand);
+    font-weight:600;font-size:17px;letter-spacing:.14em;
+  }
+  .receipt-head .date{
+    font-size:11px;color:var(--faded);letter-spacing:.14em;
+    margin-top:2px;
+  }
+  .breakdown{display:grid}
+  .row{
+    display:flex;justify-content:space-between;gap:12px;
+    padding:7px 0;
+    border-bottom:1px dashed rgba(59,58,46,.18);
+    font-size:12.5px;
+  }
+  .row span:first-child{min-width:0;overflow-wrap:anywhere;line-height:1.6}
+  .row span:last-child{white-space:nowrap;font-weight:700}
+  .row.head{font-weight:700;color:var(--faded);font-size:11.5px;letter-spacing:.08em}
+  .row.empty{color:var(--faded);border-bottom:0}
+  .receipt-total{
+    margin-top:10px;
+    padding-top:12px;
+    border-top:2px solid var(--pencil);
+  }
+  .t-row{
+    display:flex;justify-content:space-between;align-items:baseline;
+    gap:10px;padding:3px 0;
+  }
+  .t-row .label{font-size:12.5px;font-weight:700;letter-spacing:.1em}
+  .t-row .count-value{font-size:16px;font-weight:700}
+  .t-row.grand .label{font-family:var(--hand);font-weight:600;font-size:15px}
+  .t-row.grand .price-value{
+    font-size:clamp(28px,7vw,34px);
+    font-weight:700;
+    letter-spacing:.01em;
+  }
+  .warn{
+    display:none;
+    margin:12px 0 0;
+    padding:10px 12px;
+    border:1.5px dashed var(--red-pencil);
+    color:var(--red-pencil);
+    font-family:var(--hand);
+    font-size:12px;font-weight:600;
+    white-space:pre-line;
+    line-height:1.9;
+  }
+
+  .actions{display:grid;gap:9px;margin-top:14px;padding:0 6px}
+  .btn{
+    min-height:50px;
+    padding:12px 16px;
+    font-size:14px;font-weight:700;letter-spacing:.03em;
+    cursor:pointer;
+    background:var(--paper);
+    border:1.5px solid var(--pencil);
+  }
+  .btn.primary{background:var(--pencil);color:var(--desk);border-color:var(--pencil)}
+  .btn.primary:disabled{opacity:.55;cursor:default}
+  .btn.quiet{
+    background:transparent;border:0;
+    color:var(--faded);
+    font-size:12.5px;
+    text-decoration:underline dashed rgba(59,58,46,.4);
+    text-underline-offset:4px;
+    min-height:44px;
+  }
+  .memo-text{
+    margin-top:10px;padding:0 6px;
+    font-size:12px;color:var(--faded);
+  }
+  .status{
+    min-height:1.3em;
+    margin-top:6px;padding:0 6px;
+    font-family:var(--hand);
+    font-size:12px;font-weight:600;
+    color:var(--red-pencil);
+    text-align:center;
+  }
+  .status.ok{color:var(--pencil)}
+
+  /* ---------- 下部ドック(合計の常時表示) ---------- */
+  .dock{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;
+    background:var(--paper);
+    border-top:var(--dash);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  @media(min-width:900px){.dock{display:none}}
+  .dock-inner{
+    max-width:1080px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .dock-total{
+    display:flex;align-items:baseline;gap:8px;min-width:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .dock-total .cap{font-size:11px;font-weight:700;color:var(--faded)}
+  .dock-total strong{
+    font-size:21px;font-weight:700;white-space:nowrap;
+    display:inline-block;
+  }
+  .dock-total .pts{font-size:12px;font-weight:700;color:var(--faded);white-space:nowrap}
+  .dock-btn{
+    min-height:50px;
+    padding:10px 18px;
+    background:var(--pencil);
+    color:var(--desk);
+    border:0;
+    font-size:13.5px;font-weight:700;
+    cursor:pointer;white-space:nowrap;
+  }
+  @media(prefers-reduced-motion:no-preference){
+    .dock-total strong.pop{animation:pop .3s ease}
+    @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.13)}100%{transform:scale(1)}}
+  }
+
+  /* ---------- フッター ---------- */
+  .back-desk{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    margin:36px auto 10px;
+    font-family:var(--hand);
+    font-weight:600;font-size:15px;
+    width:fit-content;padding:10px 6px;
+  }
+  .back-desk svg{width:34px;height:18px;stroke:var(--pencil);fill:none;stroke-width:1.8;stroke-linecap:round}
+  .memo-card{
+    margin:0 auto 26px;
+    max-width:520px;
+    background:var(--paper);
+    padding:18px 20px 20px;
+    transform:rotate(.8deg);
+    box-shadow:var(--obj-shadow);
+    position:relative;
+    font-size:12px;line-height:2;
+  }
+  .memo-card::before{
+    content:"";position:absolute;
+    width:64px;height:18px;
+    background:var(--tape-mint);
+    top:-9px;left:50%;
+    transform:translateX(-50%) rotate(-2deg);
+  }
+  .memo-card small{display:block;color:var(--faded);margin-top:6px}
+  
+  .item-image-wrap{position:relative;width:104px;min-height:104px}
+  @media(min-width:640px){.item{grid-template-columns:128px minmax(0,1fr)}.item-image,.item-image-wrap{width:128px}.item-image{height:128px}.item-image-wrap{min-height:128px}}
+  .item-image{position:relative;z-index:2}
+  .item-image-placeholder{position:absolute;inset:0;display:grid;place-items:center;padding:4px;background:var(--paper);border:1px dashed rgba(59,58,46,.22);color:var(--faded);font-family:var(--hand);font-size:10px;font-weight:600;line-height:1.35;text-align:center;z-index:1}
+  .item-image.is-missing{opacity:0}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin:3px 0 2px}
+  .badge{display:inline-flex;align-items:center;min-height:22px;padding:2px 8px;border:1px solid rgba(59,58,46,.18);background:rgba(255,255,255,.62);font-size:10px;font-weight:700;letter-spacing:.06em}
+  .badge.random{background:rgba(226,170,58,.20);border-color:rgba(176,120,20,.40);color:#8a5a08}
+  .badge.pre{background:rgba(112,160,126,.16);border-color:rgba(60,110,78,.35);color:#2f6448}
+  .badge.fc{color:var(--red-pencil);border-color:rgba(192,71,47,.48);background:rgba(255,245,241,.84);transform:rotate(-1deg)}
+  .variant-label{font-size:10.5px;font-weight:700;color:var(--faded);letter-spacing:.06em}
+  .member-box.fc-box{border-color:rgba(192,71,47,.40);background:rgba(255,247,243,.64)}
+
+
+  /* ---------- 購入特典・会計分け ---------- */
+  .benefit-box{
+    margin-top:16px;padding:16px;border:1px dashed rgba(65,55,48,.35);
+    background:rgba(255,255,255,.5);border-radius:10px;
+  }
+  .benefit-title{font-size:13px;font-weight:900;letter-spacing:.06em;margin-bottom:6px}
+  .benefit-desc{font-size:11px;line-height:1.65;color:var(--muted);margin-bottom:12px}
+  .benefit-summary{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px
+  }
+  .benefit-stat{
+    border:1px solid var(--line);background:#fff;padding:10px;border-radius:8px;
+  }
+  .benefit-stat span{display:block;font-size:9px;color:var(--muted);font-weight:700}
+  .benefit-stat strong{display:block;font-size:17px;margin-top:3px}
+  .checkout-list{display:grid;gap:8px}
+  .checkout-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
+  .checkout-head{display:flex;justify-content:space-between;gap:10px;font-weight:900;font-size:11px}
+  .checkout-gift{font-size:9px;padding:2px 6px;border-radius:999px;background:#f3e6c4;white-space:nowrap}
+  .checkout-items{font-size:9px;line-height:1.55;color:var(--muted);margin-top:6px}
+  .checkout-money{display:grid;grid-template-columns:1fr auto;gap:3px 12px;margin-top:7px;font-size:10px}
+  .benefit-foot{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:10px;line-height:1.7}
+  .benefit-empty{font-size:10px;color:var(--muted);line-height:1.65}
+
+
+  .benefit-toggle{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:11px 12px;border:1px solid var(--line);background:#fff;border-radius:9px;
+    margin-bottom:10px;cursor:pointer;
+  }
+  .benefit-toggle-copy strong{display:block;font-size:11px}
+  .benefit-toggle-copy span{display:block;font-size:9px;color:var(--muted);margin-top:2px;line-height:1.5}
+  .benefit-switch{position:relative;width:42px;height:24px;flex:0 0 auto}
+  .benefit-switch input{position:absolute;opacity:0;pointer-events:none}
+  .benefit-slider{
+    position:absolute;inset:0;border-radius:999px;background:#d8d2ca;
+    transition:.2s;border:1px solid rgba(65,55,48,.12)
+  }
+  .benefit-slider:before{
+    content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;
+    background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:.2s
+  }
+  .benefit-switch input:checked + .benefit-slider{background:#86b394}
+  .benefit-switch input:checked + .benefit-slider:before{transform:translateX(18px)}
+  .benefit-detail[hidden]{display:none!important}
+
+  .shot-preview{margin-top:12px;padding:0 6px}
+  .shot-preview img{width:100%;box-shadow:var(--obj-shadow)}
+  .shot-preview p{font-family:var(--hand);font-size:12px;font-weight:600;text-align:center;margin-top:6px;color:var(--faded)}
+</style>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="EC計算機">
+</head>
+<body>
+
+<div class="shell">
+  <section class="intro">
+    <h1>グッズ計算機 <em>AUTUMN2026 MERCH</em></h1>
+    <p class="lede">MAZZEL AUTUMN2026 MERCH（Touch・Re-release・MAZZEL ROOM）の購入予定を入れると、合計金額・合計点数・内訳を自動で計算できます。<br>販売開始：2026.10.30(金) 21:30〜｜予約受付：〜11.4(水) 21:29</p>
+    <a class="shop-link" href="https://bmsg.shop/collections/mazzel?filter.v.availability=1" target="_blank" rel="noopener noreferrer">
+      商品情報ページはこちら▶️
+    </a>
+  </section>
+
+  <div class="layout">
+    <section aria-label="商品一覧">
+      <div id="categoryTabs" class="tabs" role="tablist" aria-label="カテゴリ"></div>
+      <div class="notebook">
+        <h2>商品一覧</h2>
+        <div id="goodsList" class="goods-list"></div>
+      </div>
+    </section>
+
+    <aside class="receipt-col" aria-label="計算結果">
+      <div class="receipt-wrap" id="receiptWrap">
+        <div class="receipt">
+          <div class="zigzag" aria-hidden="true"></div>
+          <div class="receipt-body">
+            <div class="receipt-head">
+              <div class="shop">MAZZEL GOODS</div>
+              <div class="date" id="receiptDate"></div>
+            </div>
+            <div class="breakdown" id="breakdown"></div>
+            <div class="receipt-total">
+              <div class="t-row">
+                <span class="label">合計点数</span>
+                <span class="count-value" id="totalCount">0点</span>
+              </div>
+              <div class="t-row grand">
+                <span class="label">合計金額</span>
+                <span class="price-value" id="totalPrice">¥0</span>
+              </div>
+            </div>
+            <div class="warn" id="warningBox"></div>
+
+            <div class="benefit-box" id="benefitBox">
+              <div class="benefit-title">発送・送料シミュレーター</div>
+              <div class="benefit-desc">予約商品は2027年1月下旬以降の発送です。Touchと予約商品を同じ会計にすると、全商品がそろってからまとめて発送されます。</div>
+              <label class="benefit-toggle">
+                <span class="benefit-toggle-copy">
+                  <strong>Touchを先に受け取る</strong>
+                  <span>Touchと予約商品で会計を分けて、送料770円込みで計算</span>
+                </span>
+                <span class="benefit-switch">
+                  <input type="checkbox" id="benefitToggle">
+                  <span class="benefit-slider" aria-hidden="true"></span>
+                </span>
+              </label>
+              <div class="benefit-detail" id="benefitDetail">
+                <div id="benefitResult" class="benefit-empty">商品を選ぶと、会計ごとの送料込み金額を計算します。</div>
+              </div>
+            </div>
+          </div>
+          <div class="zigzag bottom" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="downloadBtn" type="button" class="btn primary">画像を共有・保存</button>
+        <button id="copyBtn" type="button" class="btn">結果をコピー</button>
+        <button id="resetBtn" type="button" class="btn quiet">リセット</button>
+      </div>
+      <div id="status" class="status" aria-live="polite"></div>
+      <div id="shotPreview" class="shot-preview" hidden></div>
+      <p class="memo-text">サイズ・グループ・メンバー別の商品は種類ごとに選択できます。購入上限は、各サイズ・各メンバー・各種類ごとに3点まで（ランダムテロップチャームのみ20点まで）です。送料は前回と同じ770円で計算しています。</p>
+    </aside>
+  </div>
+
+  <a class="back-desk" href="https://rikomuze.github.io/muze-tool-box/">
+    <svg viewBox="0 0 34 18" aria-hidden="true"><path d="M32 9 C22 9 14 9 4 9 M4 9 l7 -5 M4 9 l7 5"/></svg>
+    ホームに戻る
+  </a>
+
+  <footer class="memo-card">
+    MAZZELの新規グッズ購入予定を整理するための非公式ファンメイド計算機です。紹介やシェアは許可なくどうぞ。
+    <small>BMSG公式とは関係のない非公式ファンメイドサイトです。掲載価格・商品情報は変更されている場合があります。購入前に公式ページをご確認ください。</small>
+  </footer>
+</div>
+
+<div class="dock" role="region" aria-label="合計">
+  <div class="dock-inner">
+    <div class="dock-total">
+      <span class="cap">合計</span>
+      <strong id="floatingTotalPrice">¥0</strong>
+      <span class="pts" id="floatingTotalCount">0点</span>
+    </div>
+    <button type="button" id="floatingResultBtn" class="dock-btn">結果を見る</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   ロジック — Play at the MUZEUM vol.2 版を踏襲。AUTUMN2026 MERCH 用に商品データと送料計算を差し替え。
+   変更点: PC保存を window.open からダウンロードに修正、
+   共有キャンセルをエラー扱いしない、Canvasの安全スケール適用、
+   インラインonclick/グローバル関数を廃止(イベント委譲)。
+   ===================================================================== */
+(function () {
+"use strict";
+
+/* ---------- 商品データ（BMSG SHOP MAZZEL / AUTUMN2026 MERCH） ---------- */
+var members = ['KAIRYU','NAOYA','RAN','SEITO','RYUKI','TAKUTO','HAYATO','EIKI'];
+var INLINE_IMAGES = /*INLINE_IMAGES*/{};
+
+var goods = [
+  { id:'touch-jacket-charm', name:'MAZZEL "Touch" ジャケットチャーム', price:900, limit:3, note:'お一人様3点まで', limited:true, categories:['Touch'] },
+  { id:'touch-acrylic-stand', name:'[Touch] アクリルスタンド', price:1300, limit:3, note:'メンバーごとに3点まで', variants:members, variantLabel:'メンバー', limited:true, categories:['Touch'] },
+  { id:'zip-up-parka', name:'MAZZEL ジップアップパーカー', price:13000, limit:3, note:'サイズごとに3点まで｜M / L', variants:['M','L'], variantLabel:'サイズ', preorder:true, categories:['Re-release'] },
+  { id:'mazzel-room-pouch', name:'MAZZEL ROOM ポーチ', price:3500, limit:3, note:'お一人様3点まで', preorder:true, categories:['Re-release'] },
+  { id:'mazzel-room-cardigan', name:'MAZZEL ROOM カーディガン', price:9800, limit:3, note:'フリーサイズ｜お一人様3点まで', preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-room-shoes', name:'MAZZEL ROOM ルームシューズ', price:4000, limit:3, note:'サイズごとに3点まで｜M(23.5〜25cm) / L(26.5〜28cm)', variants:['M','L'], variantLabel:'サイズ', preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-knit-bag', name:'MAZZEL ROOM ニットバッグ', price:2500, limit:3, note:'お一人様3点まで', preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-zipper-bag-set', name:'MAZZEL ROOM ジッパーバッグセット cooking', price:2500, limit:3, note:'4柄×各3枚（計12枚）｜お一人様3点まで｜※告知画像は¥1,500表記、販売ページの¥2,500で計算', preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-sticker-set', name:'MAZZEL ROOM シシュウステッカーセット', price:2400, limit:3, note:'5種入り｜お一人様3点まで', preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-random-telop-charm', name:'MAZZEL ROOM ランダムテロップチャーム', price:900, limit:20, note:'ランダム商品（全16種）｜お一人様20点まで', random:true, preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-art-room-cube', name:'MAZZEL ROOM アートルームキューブ', price:1500, limit:3, note:'メンバーごとに3点まで', variants:members, variantLabel:'メンバー', preorder:true, categories:['MAZZEL ROOM'] },
+  { id:'mazzel-room-blanket', name:'MAZZEL ROOM ブランケット', price:3800, limit:3, note:'お一人様3点まで', preorder:true, categories:['MAZZEL ROOM'] }
+];
+
+var categories = ['すべて','Touch','Re-release','MAZZEL ROOM'];
+var currentCategory = 'すべて';
+
+var quantities = {};
+var variantQuantities = {};
+goods.forEach(function (item) {
+  quantities[item.id] = 0;
+  if (item.variants) {
+    variantQuantities[item.id] = {};
+    item.variants.forEach(function (variant) { variantQuantities[item.id][variant] = 0; });
+  }
+});
+
+/* ---------- 要素 ---------- */
+var goodsList = document.getElementById('goodsList');
+var categoryTabs = document.getElementById('categoryTabs');
+var totalPrice = document.getElementById('totalPrice');
+var totalCount = document.getElementById('totalCount');
+var floatingTotalPrice = document.getElementById('floatingTotalPrice');
+var floatingTotalCount = document.getElementById('floatingTotalCount');
+var floatingResultBtn = document.getElementById('floatingResultBtn');
+var breakdown = document.getElementById('breakdown');
+var warningBox = document.getElementById('warningBox');
+var copyBtn = document.getElementById('copyBtn');
+var downloadBtn = document.getElementById('downloadBtn');
+var resetBtn = document.getElementById('resetBtn');
+var statusEl = document.getElementById('status');
+var shotPreview = document.getElementById('shotPreview');
+var benefitResult = document.getElementById('benefitResult');
+var benefitToggle = document.getElementById('benefitToggle');
+var benefitDetail = document.getElementById('benefitDetail');
+
+/* ---------- ユーティリティ ---------- */
+function formatYen(value) { return '¥' + Number(value).toLocaleString('ja-JP'); }
+function clamp(value, limit) {
+  var num = Math.floor(Number(value) || 0);
+  if (num < 0) return 0;
+  if (num > limit) return limit;
+  return num;
+}
+function formatDate(d) {
+  return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+}
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ---------- 計算(現行と同一ロジック) ---------- */
+function getRows() {
+  var rows = [];
+  goods.forEach(function (item) {
+    if (item.variants) {
+      item.variants.forEach(function (variant) {
+        var count = variantQuantities[item.id][variant];
+        if (count > 0) rows.push({ label: item.name + ' / ' + variant + ' × ' + count, count: count, subtotal: item.price * count });
+      });
+    } else {
+      var count = quantities[item.id];
+      if (count > 0) rows.push({ label: item.name + ' × ' + count, count: count, subtotal: item.price * count });
+    }
+  });
+  return rows;
+}
+function getWarnings() {
+  var warnings = [];
+  goods.forEach(function (item) {
+    if (item.variants) {
+      var atLimit = item.variants.filter(function(variant){ return variantQuantities[item.id][variant] >= item.limit; });
+      if (atLimit.length) warnings.push('「' + item.name + '」は各' + (item.variantLabel || '種類') + item.limit + '点までです（上限：' + atLimit.join('、') + '）。');
+    } else if (quantities[item.id] >= item.limit) {
+      warnings.push('「' + item.name + '」は上限の' + item.limit + '点です。');
+    }
+  });
+  return warnings;
+}
+
+
+/* ---------- 発送・送料：Touch と予約商品の会計分け ---------- */
+var SHIPPING_FEE = 770;
+
+function getAtomicItems() {
+  var items = [];
+  goods.forEach(function (item) {
+    if (item.variants) {
+      item.variants.forEach(function (variant) {
+        var q = variantQuantities[item.id][variant] || 0;
+        for (var i = 0; i < q; i++) items.push({ label: item.name + ' / ' + variant, price: item.price, preorder: !!item.preorder });
+      });
+    } else {
+      var q = quantities[item.id] || 0;
+      for (var i = 0; i < q; i++) items.push({ label: item.name, price: item.price, preorder: !!item.preorder });
+    }
+  });
+  return items;
+}
+
+function groupLabels(items) {
+  var map = {}, order = [];
+  items.forEach(function(x){ if(!(x.label in map)){ map[x.label]=0; order.push(x.label); } map[x.label]++; });
+  return order.map(function(label){
+    return escapeHtml(label) + (map[label] > 1 ? ' × ' + map[label] : '');
+  }).join('<br>');
+}
+
+function planCheckouts(items) {
+  var normal = items.filter(function(x){ return !x.preorder; });
+  var pre = items.filter(function(x){ return x.preorder; });
+  var sum = function(a){ return a.reduce(function(s,x){ return s+x.price; },0); };
+  var split = benefitToggle && benefitToggle.checked && normal.length && pre.length;
+  if (split) {
+    return [
+      { title:'Touch', tag:'在庫分から発送', items:normal, subtotal:sum(normal) },
+      { title:'予約商品', tag:'2027年1月下旬〜', items:pre, subtotal:sum(pre) }
+    ];
+  }
+  return [{ title:'まとめて1会計', tag: pre.length ? '2027年1月下旬〜' : '在庫分から発送', items:items, subtotal:sum(items) }];
+}
+
+function renderBenefit(rowsTotal) {
+  var items = getAtomicItems();
+  if (!items.length) {
+    benefitResult.className = 'benefit-empty';
+    benefitResult.innerHTML = '商品を選ぶと、会計ごとの送料込み金額を計算します。';
+    return;
+  }
+  var checkouts = planCheckouts(items);
+  var checkoutCount = checkouts.length;
+  var shippingTotal = checkoutCount * SHIPPING_FEE;
+  var hasNormal = items.some(function(x){ return !x.preorder; });
+  var hasPre = items.some(function(x){ return x.preorder; });
+
+  var cards = checkouts.map(function(g, idx){
+    return '<div class="checkout-card">' +
+      '<div class="checkout-head"><span>会計 ' + (idx + 1) + '｜' + escapeHtml(g.title) + '</span>' +
+      '<span class="checkout-gift">' + escapeHtml(g.tag) + '</span></div>' +
+      '<div class="checkout-items">' + groupLabels(g.items) + '</div>' +
+      '<div class="checkout-money">' +
+        '<span>商品代</span><strong>' + formatYen(g.subtotal) + '</strong>' +
+        '<span>送料</span><span>' + formatYen(SHIPPING_FEE) + '</span>' +
+        '<span>支払額</span><strong>' + formatYen(g.subtotal + SHIPPING_FEE) + '</strong>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var foot;
+  if (hasNormal && hasPre) {
+    foot = checkoutCount > 1
+      ? 'Touchが先に届く代わりに、送料が <strong>+' + formatYen(SHIPPING_FEE) + '</strong>'
+      : 'Touchも予約商品と一緒に2027年1月下旬以降の発送になります';
+  } else {
+    foot = '会計を分ける必要はありません';
+  }
+
+  benefitResult.className = '';
+  benefitResult.innerHTML =
+    '<div class="benefit-summary">' +
+      '<div class="benefit-stat"><span>会計数</span><strong>' + checkoutCount + '回</strong></div>' +
+      '<div class="benefit-stat"><span>送料込み総額</span><strong>' + formatYen(rowsTotal + shippingTotal) + '</strong></div>' +
+    '</div>' +
+    '<div class="checkout-list">' + cards + '</div>' +
+    '<div class="benefit-foot">' +
+      '商品合計：<strong>' + formatYen(rowsTotal) + '</strong><br>' +
+      '送料合計：<strong>' + formatYen(shippingTotal) + '</strong>（' + formatYen(SHIPPING_FEE) + ' × ' + checkoutCount + '会計）<br>' +
+      foot +
+    '</div>';
+}
+
+/* ---------- 描画 ---------- */
+function imageBase(item){return 'images/' + (item.image || item.id);}
+function imageCandidates(item){if(INLINE_IMAGES[item.id])return [INLINE_IMAGES[item.id]];var b=imageBase(item);return [b+'.webp',b+'.jpg',b+'.jpeg',b+'.png'];}
+function imageSrc(item){return imageCandidates(item)[0];}
+
+function renderCategoryTabs() {
+  categoryTabs.innerHTML = categories.map(function (category) {
+    return '<button type="button" role="tab" aria-selected="' + (currentCategory === category) + '"' +
+      ' class="tab' + (currentCategory === category ? ' active' : '') + '"' +
+      ' data-act="tab" data-category="' + escapeHtml(category) + '">' + escapeHtml(category) + '</button>';
+  }).join('');
+}
+
+function renderVariantSelector(item) {
+  var map = variantQuantities[item.id];
+  var selectedTypes = Object.values(map).filter(function(v){ return v > 0; }).length;
+  var selectedTotal = Object.values(map).reduce(function(s,v){ return s + v; }, 0);
+  return '<div class="member-box"><div class="member-head"><div class="member-title">'+escapeHtml(item.variantLabel||'種類')+'別｜各'+escapeHtml(item.variantLabel||'種類')+item.limit+'点まで｜選択中：'+selectedTypes+'種 / 合計'+selectedTotal+'点</div><div class="set-actions"><button type="button" data-act="clear" data-id="'+item.id+'">クリア</button></div></div><div class="member-grid">'+item.variants.map(function(v){var c=map[v];return '<div class="member-row"><div class="member-name">'+escapeHtml(v)+'</div><div class="member-controls"><button type="button" class="mstep" data-act="vdec" data-id="'+item.id+'" data-variant="'+escapeHtml(v)+'">−</button><div class="member-count'+(c>=item.limit?' at-limit':'')+'">'+c+'</div><button type="button" class="mstep" data-act="vinc" data-id="'+item.id+'" data-variant="'+escapeHtml(v)+'" '+(c>=item.limit?'disabled':'')+'>＋</button></div></div>';}).join('')+'</div></div>';
+}
+
+function renderRow(item) {
+  var count=quantities[item.id];
+  var atLimit=!item.variants && count>=item.limit;
+  var candidates=imageCandidates(item);
+  var badgeParts=[]; if(item.limited) badgeParts.push('<span class="badge fc">数量限定</span>'); if(item.preorder) badgeParts.push('<span class="badge pre">予約販売</span>'); if(item.random) badgeParts.push('<span class="badge random">RANDOM</span>'); if(item.fcOnly) badgeParts.push('<span class="badge fc">FC限定</span>'); if(item.architectOnly) badgeParts.push('<span class="badge fc">Architect会員限定</span>'); var badges=badgeParts.length?'<div class="badges">'+badgeParts.join('')+'</div>':'';
+  return '<div class="item"><div class="item-image-wrap"><div class="item-image-placeholder">IMAGE<br>COMING SOON</div><img class="item-image" src="'+candidates[0]+'" data-candidates="'+escapeHtml(JSON.stringify(candidates))+'" data-index="0" alt="'+escapeHtml(item.name)+'" loading="lazy"></div><div class="item-name-wrap"><div class="item-head"><div class="name">'+escapeHtml(item.name)+'</div><div class="price">'+formatYen(item.price)+'</div></div>'+badges+'<div class="note">'+escapeHtml(item.note)+(atLimit?'<span class="limit-note">← 入力上限の'+item.limit+'点です</span>':'')+'</div>'+(item.variants?'':'<div class="controls"><button type="button" class="step" data-act="dec" data-id="'+item.id+'">−</button><input type="number" inputmode="numeric" min="0" max="'+item.limit+'" value="'+count+'" data-act="input" data-id="'+item.id+'"><button type="button" class="step" data-act="inc" data-id="'+item.id+'">＋</button></div>')+'</div>'+(item.variants?renderVariantSelector(item):'')+'</div>';
+}
+
+var lastTotal = null;
+function update() {
+  renderCategoryTabs();
+
+  var visibleGoods = currentCategory === 'すべて'
+    ? goods
+    : goods.filter(function (item) { return item.categories && item.categories.includes(currentCategory); });
+  goodsList.innerHTML = visibleGoods.map(renderRow).join('');
+
+  var rows = getRows();
+  var total = rows.reduce(function (sum, row) { return sum + row.subtotal; }, 0);
+  var count = rows.reduce(function (sum, row) { return sum + row.count; }, 0);
+
+  totalPrice.textContent = formatYen(total);
+  totalCount.textContent = count + '点';
+  floatingTotalPrice.textContent = formatYen(total);
+  floatingTotalCount.textContent = count + '点';
+
+  // 変わった瞬間だけ数字がわずかに弾む
+  if (lastTotal !== null && lastTotal !== total) {
+    floatingTotalPrice.classList.remove('pop');
+    void floatingTotalPrice.offsetWidth;
+    floatingTotalPrice.classList.add('pop');
+  }
+  lastTotal = total;
+
+  if (rows.length === 0) {
+    breakdown.innerHTML = '<div class="row empty"><span>まだ商品が選択されていません</span><span>—</span></div>';
+  } else {
+    breakdown.innerHTML =
+      '<div class="row head"><span>内訳</span><span>小計</span></div>' +
+      rows.map(function (row) {
+        return '<div class="row"><span>' + escapeHtml(row.label) + '</span><span>' + formatYen(row.subtotal) + '</span></div>';
+      }).join('');
+  }
+
+  renderBenefit(total);
+
+  var warnings = getWarnings();
+  if (warnings.length > 0) {
+    warningBox.style.display = 'block';
+    warningBox.textContent = warnings.join('\n');
+  } else {
+    warningBox.style.display = 'none';
+    warningBox.textContent = '';
+  }
+}
+
+
+function getBenefitCopyText() {
+  var items = getAtomicItems();
+  if (!items.length) return '';
+  var goodsTotal = items.reduce(function(s,x){ return s+x.price; },0);
+  var checkouts = planCheckouts(items);
+  var lines = ['','【送料込み】'];
+  checkouts.forEach(function(g, i){
+    lines.push('会計' + (i+1) + '（' + g.title + '）：商品 ' + formatYen(g.subtotal) + ' + 送料 ' + formatYen(SHIPPING_FEE) + ' = ' + formatYen(g.subtotal + SHIPPING_FEE));
+  });
+  lines.push('送料込み総額：' + formatYen(goodsTotal + checkouts.length * SHIPPING_FEE));
+  return lines.join('\n');
+}
+
+/* ---------- 操作(イベント委譲・グローバル関数なし) ---------- */
+function handleAction(act, ds) {
+  var item = goods.find(function (g) { return g.id === ds.id; });
+  if (act === 'inc' || act === 'dec') {
+    quantities[ds.id] = clamp(quantities[ds.id] + (act === 'inc' ? 1 : -1), item.limit);
+    update();
+  } else if (act === 'vinc' || act === 'vdec') {
+    if (act === 'vinc') {
+      variantQuantities[ds.id][ds.variant] = clamp(variantQuantities[ds.id][ds.variant] + 1, item.limit);
+    } else {
+      variantQuantities[ds.id][ds.variant] = Math.max(0, variantQuantities[ds.id][ds.variant] - 1);
+    }
+    update();
+  } else if (act === 'clear') {
+    item.variants.forEach(function (v) { variantQuantities[ds.id][v] = 0; });
+    update();
+  }
+}
+
+goodsList.addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-act]');
+  if (!btn || btn.dataset.act === 'input') return;
+  handleAction(btn.dataset.act, btn.dataset);
+});
+goodsList.addEventListener('change', function (e) {
+  var el = e.target.closest('[data-act="input"]');
+  if (!el) return;
+  var item = goods.find(function (g) { return g.id === el.dataset.id; });
+  quantities[el.dataset.id] = clamp(el.value, item.limit);
+  update();
+});
+// 画像フォールバック：webp → jpg → jpeg → png
+goodsList.addEventListener('error', function(e){
+  var img=e.target;
+  if(img.tagName!=='IMG' || !img.dataset.candidates) return;
+  var candidates; try{candidates=JSON.parse(img.dataset.candidates);}catch(err){img.classList.add('is-missing');return;}
+  var next=Number(img.dataset.index||0)+1;
+  if(next<candidates.length){img.dataset.index=String(next);img.src=candidates[next];}
+  else{img.removeAttribute('data-candidates');img.classList.add('is-missing');}
+}, true);
+
+categoryTabs.addEventListener('click', function (e) {
+  var tab = e.target.closest('[data-act="tab"]');
+  if (!tab) return;
+  currentCategory = tab.dataset.category;
+  update();
+});
+
+resetBtn.addEventListener('click', function () {
+  goods.forEach(function (item) {
+    quantities[item.id] = 0;
+    if (item.variants) item.variants.forEach(function (v) { variantQuantities[item.id][v] = 0; });
+  });
+  shotPreview.hidden = true; shotPreview.innerHTML = '';
+  update();
+  setStatus('リセットしました。', true);
+});
+
+floatingResultBtn.addEventListener('click', function () {
+  document.querySelector('aside.receipt-col').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+/* ---------- コピー(文言は現行と同一) ---------- */
+copyBtn.addEventListener('click', async function () {
+  var rows = getRows();
+  var total = rows.reduce(function (s, r) { return s + r.subtotal; }, 0);
+  var count = rows.reduce(function (s, r) { return s + r.count; }, 0);
+  var text = [
+    '【MAZZEL AUTUMN2026 MERCH グッズ購入費用メモ】'
+  ].concat(rows.map(function (row) { return '・' + row.label + ' = ' + formatYen(row.subtotal); }))
+   .concat(['合計点数：' + count + '点', '合計金額：' + formatYen(total)])
+   .join('\n') + getBenefitCopyText();
+
+  var originalText = copyBtn.textContent;
+  function done() {
+    copyBtn.textContent = 'コピーしました';
+    setTimeout(function () { copyBtn.textContent = originalText; }, 1600);
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    done();
+  } catch (e) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    done();
+  }
+});
+
+/* ---------- 画像保存(レシートを画像化) ---------- */
+var MAX_CANVAS_SIDE = 4096;
+var MAX_CANVAS_AREA = 16000000;
+function safeScale(width, height, wanted) {
+  var bySide = Math.min(MAX_CANVAS_SIDE / width, MAX_CANVAS_SIDE / height);
+  var byArea = Math.sqrt(MAX_CANVAS_AREA / (width * height));
+  return Math.max(1, Math.floor(Math.min(wanted || 2, bySide, byArea) * 100) / 100);
+}
+function canvasToBlob(canvas) {
+  return new Promise(function (resolve, reject) {
+    canvas.toBlob(function (blob) {
+      if (blob) resolve(blob); else reject(new Error('Blob creation failed'));
+    }, 'image/png');
+  });
+}
+
+downloadBtn.addEventListener('click', async function () {
+  var target = document.getElementById('receiptWrap');
+  var originalText = downloadBtn.textContent;
+  downloadBtn.disabled = true;
+  downloadBtn.textContent = '画像を作成中…';
+  setStatus('画像を作成中…', true);
+
+  try {
+    try { await document.fonts.ready; } catch (e) {}
+    var rect = target.getBoundingClientRect();
+    var canvas = await html2canvas(target, {
+      backgroundColor: '#f1ebe1',           /* 机の上のレシートとして写る */
+      scale: safeScale(rect.width, rect.height, 2),
+      useCORS: true,
+      logging: false
+    });
+    var blob = await canvasToBlob(canvas);
+    var file = new File([blob], 'mazzel-autumn2026-goods-result.png', { type: 'image/png' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'MAZZEL AUTUMN2026 MERCH グッズ購入費用メモ',
+          text: 'MAZZEL AUTUMN2026 MERCH グッズ購入費用メモ'
+        });
+        setStatus('共有シートを開きました。', true);
+        return;
+      } catch (shareError) {
+        if (shareError && shareError.name === 'AbortError') {
+          setStatus('共有をキャンセルしました。', true);
+          return;
+        }
+      }
+    }
+
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'mazzel-autumn2026-goods-result.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    shotPreview.innerHTML = '<img src="' + canvas.toDataURL('image/png') + '" alt="計算結果の画像"><p>保存されない場合は、画像を長押しして保存してください</p>';
+    shotPreview.hidden = false;
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    setStatus('画像を作成しました。', true);
+  } catch (e) {
+    console.error(e);
+    setStatus('画像の保存に失敗しました。うまくいかない場合はレシートをスクリーンショットしてください。');
+  } finally {
+    downloadBtn.disabled = false;
+    downloadBtn.textContent = originalText;
+  }
+});
+
+function setStatus(message, ok) {
+  statusEl.textContent = message || '';
+  statusEl.classList.toggle('ok', !!ok);
+  if (!message) return;
+  clearTimeout(setStatus.timer);
+  setStatus.timer = setTimeout(function () { statusEl.textContent = ''; }, 3500);
+}
+
+
+if (benefitToggle) {
+  benefitToggle.addEventListener('change', function () {
+    update();
+  });
+}
+
+/* ---------- 初期化 ---------- */
+document.getElementById('receiptDate').textContent = formatDate(new Date());
+update();
+lastTotal = 0; // 初回描画では弾ませない
+
+})();
+</script>
+</body>
+</html>
